@@ -1,0 +1,77 @@
+/* Animated tab characters. Each loops every 3.2s; motion stops for people who prefer reduced motion. */
+.anim * { transform-box: fill-box; }
+
+/* Bills: a DUE stamp thumps onto the bill */
+.anim .bill-paper { transform-origin: 50% 100%; animation: bill-shake 3.2s ease-in-out infinite; }
+.anim .bill-stamp { transform-origin: 50% 50%; animation: bill-stamp 3.2s cubic-bezier(.3,1.6,.5,1) infinite; }
+@keyframes bill-stamp {
+  0%, 12% { transform: rotate(-14deg) scale(2.4); opacity: 0; }
+  28% { transform: rotate(-14deg) scale(1); opacity: 1; }
+  85% { transform: rotate(-14deg) scale(1); opacity: 1; }
+  100% { transform: rotate(-14deg) scale(1); opacity: 0; }
+}
+@keyframes bill-shake {
+  0%, 26%, 40%, 100% { transform: rotate(0); }
+  30% { transform: rotate(-3deg) scaleY(.96); }
+  34% { transform: rotate(2deg); }
+}
+
+/* Savings: a coin drops into the piggy bank and the pig hops */
+.anim .coin { animation: coin-drop 3.2s cubic-bezier(.5,0,.8,.4) infinite; opacity: 0; }
+@keyframes coin-drop {
+  0% { transform: translateY(-6px); opacity: 0; }
+  8% { opacity: 1; }
+  32% { transform: translateY(18px); opacity: 1; }
+  36%, 100% { transform: translateY(22px); opacity: 0; }
+}
+.anim .pig { transform-origin: 50% 100%; animation: pig-hop 3.2s ease-out infinite; }
+@keyframes pig-hop {
+  0%, 32%, 100% { transform: translateY(0) scale(1, 1); }
+  36% { transform: translateY(0) scale(1.05, .93); }
+  44% { transform: translateY(-7px) scale(.98, 1.03); }
+  52% { transform: translateY(0) scale(1, 1); }
+}
+.anim .plus { animation: plus-pop 3.2s ease-out infinite; opacity: 0; }
+@keyframes plus-pop {
+  0%, 40% { transform: translateY(6px); opacity: 0; }
+  50% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(-8px); opacity: 1; }
+  92%, 100% { transform: translateY(-10px); opacity: 0; }
+}
+
+/* Debit: the card taps, contactless waves pulse, money goes out */
+.anim .card { transform-origin: 0% 100%; animation: card-tap 3.2s ease-in-out infinite; }
+@keyframes card-tap {
+  0%, 15% { transform: rotate(0) translateX(0); }
+  28% { transform: rotate(-8deg) translateX(6px); }
+  40%, 100% { transform: rotate(0) translateX(0); }
+}
+.anim .wave { opacity: 0; animation: wave 3.2s ease-out infinite; }
+.anim .wave.w2 { animation-delay: .12s; }
+.anim .wave.w3 { animation-delay: .24s; }
+@keyframes wave { 0%, 26% { opacity: 0; } 32%, 58% { opacity: 1; } 70%, 100% { opacity: 0; } }
+.anim .minus { opacity: 0; animation: minus-float 3.2s ease-out infinite; }
+@keyframes minus-float {
+  0%, 38% { transform: translateY(8px); opacity: 0; }
+  48% { transform: translateY(0); opacity: 1; }
+  82% { transform: translateY(-4px); opacity: 1; }
+  94%, 100% { transform: translateY(-6px); opacity: 0; }
+}
+
+/* Summary: week bars grow in order, then the trend line draws */
+.anim .bar { transform-origin: 50% 100%; animation: bar-grow 3.2s cubic-bezier(.3,1.4,.5,1) infinite; }
+.anim .bar.b2 { animation-delay: .15s; }
+.anim .bar.b3 { animation-delay: .3s; }
+.anim .bar.b4 { animation-delay: .45s; }
+@keyframes bar-grow {
+  0% { transform: scaleY(0); }
+  25%, 88% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+.anim .trend { stroke-dasharray: 90; animation: trend-draw 3.2s ease-out infinite; }
+@keyframes trend-draw { 0%, 30% { stroke-dashoffset: 90; } 60%, 88% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 90; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim * { animation: none !important; }
+  .anim .coin, .anim .wave, .anim .plus, .anim .minus { opacity: 1; }
+}

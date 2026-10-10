@@ -75,16 +75,8 @@
   const tint = (s) => TINTS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
 
   // ---------- mascots ----------
-  const M = {
-    // Billy: a bill that comes around every month
-    billy: (s = 72) => `<svg class="mascot" width="${s}" height="${s}" viewBox="0 0 72 72" aria-hidden="true"><path d="M14 6h26l12 12v42a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4z" fill="#fff" stroke="#17192B" stroke-width="3" stroke-linejoin="round"/><path d="M40 6v12h12" fill="#E1E4EE" stroke="#17192B" stroke-width="3" stroke-linejoin="round"/><rect x="16" y="13" width="18" height="6" rx="3" fill="#F2662B"/><circle cx="23" cy="31" r="3.5" fill="#17192B"/><circle cx="37" cy="31" r="3.5" fill="#17192B"/><path d="M25 39q5 4 10 0" stroke="#17192B" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M17 48h18M17 54h12" stroke="#C9CCDB" stroke-width="3" stroke-linecap="round"/><circle cx="54" cy="54" r="14" fill="#F2662B" stroke="#17192B" stroke-width="3"/><path d="M47 52a7.5 7.5 0 0 1 13-4" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M61 44v5h-5" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M61 56a7.5 7.5 0 0 1-13 4" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M47 64v-5h5" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    // Penny: a pot of money with coins dropping in
-    sprout: (s = 72) => `<svg class="mascot" width="${s}" height="${s}" viewBox="0 0 72 72" aria-hidden="true"><circle cx="46" cy="9" r="6" fill="#FFC93C" stroke="#17192B" stroke-width="2.5"/><path d="M46 6v6" stroke="#17192B" stroke-width="2" stroke-linecap="round"/><circle cx="27" cy="25" r="7" fill="#FFC93C" stroke="#17192B" stroke-width="2.5"/><circle cx="40" cy="23" r="7" fill="#FFC93C" stroke="#17192B" stroke-width="2.5"/><path d="M18 34h36l-3 26a6 6 0 0 1-6 5H27a6 6 0 0 1-6-5z" fill="#0E8C7A" stroke="#17192B" stroke-width="3" stroke-linejoin="round"/><rect x="12" y="27" width="48" height="9" rx="4.5" fill="#0B6B5C" stroke="#17192B" stroke-width="3"/><circle cx="29" cy="46" r="5.5" fill="#fff"/><circle cx="43" cy="46" r="5.5" fill="#fff"/><circle cx="30" cy="47" r="2.8" fill="#17192B"/><circle cx="44" cy="47" r="2.8" fill="#17192B"/><path d="M31 55q5 4 10 0" stroke="#17192B" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
-    // Swipe: a red debit card
-    swipe: (s = 72) => `<svg class="mascot" width="${s * 76 / 72}" height="${s}" viewBox="0 0 76 72" aria-hidden="true"><path d="M58 4q5 4 0 8M64 1q8 7 0 14" stroke="#17192B" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="6" y="14" width="64" height="46" rx="12" fill="#D7373D" stroke="#17192B" stroke-width="3"/><rect x="7.5" y="23" width="61" height="8" fill="#A7262B"/><rect x="14" y="47" width="14" height="6" rx="3" fill="#FFC93C"/><path d="M48 50h12" stroke="#FFD0D2" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="39" r="5.5" fill="#fff"/><circle cx="48" cy="39" r="5.5" fill="#fff"/><circle cx="33" cy="40" r="2.8" fill="#17192B"/><circle cx="49" cy="40" r="2.8" fill="#17192B"/><path d="M37 47q3 3 6 0" stroke="#17192B" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>`,
-    // Chartie: the month at a glance, week by week
-    wally: (s = 72) => `<svg class="mascot" width="${s}" height="${s}" viewBox="0 0 72 72" aria-hidden="true"><rect x="8" y="10" width="56" height="54" rx="12" fill="#FFC93C" stroke="#17192B" stroke-width="3"/><path d="M22 5v10M50 5v10" stroke="#17192B" stroke-width="3.5" stroke-linecap="round"/><path d="M8 24h56" stroke="#17192B" stroke-width="3"/><circle cx="28" cy="33" r="3.5" fill="#17192B"/><circle cx="44" cy="33" r="3.5" fill="#17192B"/><path d="M31 40q5 4 10 0" stroke="#17192B" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="17" y="50" width="7" height="8" rx="2" fill="#F2662B"/><rect x="28" y="46" width="7" height="12" rx="2" fill="#0E8C7A"/><rect x="39" y="49" width="7" height="9" rx="2" fill="#D7373D"/><rect x="50" y="44" width="7" height="14" rx="2" fill="#17192B"/></svg>`
-  };
+  // Animated tab characters live in mascots.js / mascots.css.
+  const M = { billy: (s) => MBM.bills(s), sprout: (s) => MBM.savings(s), swipe: (s) => MBM.debit(s), wally: (s) => MBM.summary(s) };
   const ICON = {
     bell: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
     left: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
@@ -279,7 +271,7 @@
       <section class="hero teal">
         <span class="label">Total saved</span>
         <div class="big">${money(total, { round: true })}</div>
-        <span style="font-size:14px">${thisMonth > 0 ? `Up <b>${money(thisMonth, { round: true })}</b> this month. Penny is filling up!` : thisMonth < 0 ? `Down ${money(-thisMonth, { round: true })} this month.` : 'Nothing added this month yet.'}</span>
+        <span style="font-size:14px">${thisMonth > 0 ? `Up <b>${money(thisMonth, { round: true })}</b> this month. Your piggy bank is growing!` : thisMonth < 0 ? `Down ${money(-thisMonth, { round: true })} this month.` : 'Nothing added this month yet.'}</span>
         <div class="hero-actions"><button type="button" data-act="add" style="background:#fff;color:#0B6B5C">Add money</button><button type="button" data-act="add-goal" style="background:#0B6B5C;color:#fff">New goal</button></div>
       </section>
       ${S.goals.length ? `<h2 style="font-size:20px;font-weight:700">Goals</h2><div class="goals">${goals}</div>` : `<div class="empty">${M.sprout(56)}<b>Plant your first goal</b>An emergency fund, a trip, a new phone. Watch the jar fill up.<button type="button" class="btn accent" data-act="add-goal">New goal</button></div>`}
@@ -352,7 +344,7 @@
     }).join('');
     return `
       <header class="head"><div><div class="eyebrow">${monthNav()}</div><h1>Summary</h1></div>${M.wally()}</header>
-      ${setupNeeded ? `<div class="alert" style="background:var(--sun-soft);color:#5C3D00"><div><b>Tell Chartie about your pay</b><span>Add how much and how often you get paid to split the month by week.</span></div><button type="button" class="btn" data-act="settings" style="height:44px;flex-shrink:0">Set up</button></div>` : ''}
+      ${setupNeeded ? `<div class="alert" style="background:var(--sun-soft);color:#5C3D00"><div><b>Add your pay to see each week</b><span>Add how much and how often you get paid to split the month by week.</span></div><button type="button" class="btn" data-act="settings" style="height:44px;flex-shrink:0">Set up</button></div>` : ''}
       <section class="hero light">
         <div class="row"><span class="label">Income this month</span><span style="display:flex;gap:8px;align-items:center"><span class="label">${S.settings.payAmount ? `${money(S.settings.payAmount, { round: true })} ${freq}` : ''}</span><button type="button" class="icon-btn" data-act="settings" aria-label="Settings" style="background:var(--bg)">${ICON.gear}</button></span></div>
         <div class="big">${money(income, { round: true })}</div>
@@ -448,7 +440,7 @@
       const amt = num(val('amount')); if (!amt) return toast('Add an amount');
       const data = { goalId: val('goalId'), amount: val('dir') === 'out' ? -Math.abs(amt) : Math.abs(amt), date: val('date') || ymd(today()) };
       if (dep) Object.assign(dep, data); else S.deposits.push({ id: uid(), ...data });
-      save(); closeSheet(); render(); toast(data.amount > 0 ? 'Penny says thanks!' : 'Taken out');
+      save(); closeSheet(); render(); toast(data.amount > 0 ? 'Oink! Saved.' : 'Taken out');
     }, { del: dep ? () => { S.deposits = S.deposits.filter((x) => x !== dep); } : null });
   }
 
@@ -487,7 +479,7 @@
     openSheet('Settings', `
       <label class="field">Pay per check<input name="payAmount" class="money" inputmode="decimal" value="${st.payAmount || ''}" placeholder="${st.currency}0"></label>
       <div class="field">How often are you paid?${segHTML('payFreq', [['weekly', 'Weekly'], ['biweekly', 'Every 2 wks'], ['monthly', 'Monthly']], st.payFreq)}</div>
-      <label class="field">A recent payday <span class="hint">Any date you were paid. Chartie counts forward from it.</span><input name="payAnchor" type="date" value="${st.payAnchor}"></label>
+      <label class="field">A recent payday <span class="hint">Any date you were paid. The app counts paydays forward from it.</span><input name="payAnchor" type="date" value="${st.payAnchor}"></label>
       <label class="field">Weekly debit budget<input name="weeklyBudget" inputmode="decimal" value="${st.weeklyBudget || ''}" placeholder="${st.currency}0"></label>
       <label class="field">Currency symbol<input name="currency" value="${esc(st.currency)}" maxlength="4"></label>
       <div>
