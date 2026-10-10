@@ -238,7 +238,7 @@
 
     const list = shown.length ? `<div class="list">${shown.map(({ b, due }) => {
       const st = status(b, due);
-      return `<button type="button" class="item" data-act="edit-bill" data-id="${b.id}"><div class="badge" style="background:${tint(b.name)}">${esc(b.name[0]?.toUpperCase() || '?')}</div><div class="main"><b>${esc(b.name)}</b><span>${b.type === 'once' ? `One-time · ${short(due)}` : `Every month · ${ord(b.day)}`}</span></div><div class="side"><b>${money(b.amount)}</b><span class="pill ${st.cls}">${st.text}</span></div></button>`;
+      return `<button type="button" class="item" data-act="edit-bill" data-id="${b.id}"><div class="badge" style="background:${tint(b.name)}">${esc(b.name[0]?.toUpperCase() || '?')}</div><div class="main"><b>${esc(b.name)}</b><span>${b.kind === 'debt' ? 'Debt · ' : ''}${b.type === 'once' ? `One-time · ${short(due)}` : `Every month · ${ord(b.day)}`}</span></div><div class="side"><b>${money(b.amount)}</b><span class="pill ${st.cls}">${st.text}</span></div></button>`;
     }).join('')}</div>` : `<div class="empty">${M.billy(56)}<b>No bills here yet</b>Add rent, phone, or anything you pay. Billy will remind you before it is due.<button type="button" class="btn accent" data-act="add">Add a bill</button>${S.bills.length ? '' : '<button type="button" class="link-btn" data-act="sample">or try it with sample data</button>'}</div>`;
 
     return `
@@ -486,7 +486,7 @@
         <div class="settings-row"><div>Due-date notifications<span>${perm === 'unsupported' ? 'Not supported here. Install the app to the home screen first.' : perm === 'denied' ? 'Blocked. Allow notifications for this app in your phone settings.' : st.notify && perm === 'granted' ? 'On. Billy pings you when a reminder day arrives.' : 'Off'}</span></div><button type="button" class="btn ${st.notify && perm === 'granted' ? 'ghost' : ''}" data-act="notify">${st.notify && perm === 'granted' ? 'Turn off' : 'Turn on'}</button></div>
         <div class="settings-row"><div>Add bills to my calendar<span>Most reliable reminders on any phone. Re-export after adding bills.</span></div><button type="button" class="btn ghost" data-act="ics">Export</button></div>
         <div class="settings-row"><div>Back up my data<span>Saves a file you can restore later.</span></div><button type="button" class="btn ghost" data-act="backup">Back up</button></div>
-        <div class="settings-row"><div>Restore a backup<span>Replaces what is on this phone.</span></div><label class="btn ghost" style="display:grid;place-items:center">Restore<input type="file" accept="application/json" data-act="restore" class="sr"></label></div>
+        <div class="settings-row"><div>Restore or import a file<span>A backup replaces everything. A bills import only adds and updates bills.</span></div><label class="btn ghost" style="display:grid;place-items:center">Restore<input type="file" accept="application/json" data-act="restore" class="sr"></label></div>
         <div class="settings-row"><div>Start fresh<span>Deletes everything in the app.</span></div><button type="button" class="btn danger" data-act="wipe">Erase</button></div>
       </div>`,
     () => {
@@ -583,7 +583,21 @@
   document.addEventListener('change', (e) => {
     if (e.target.dataset.act !== 'restore' || !e.target.files[0]) return;
     e.target.files[0].text().then((txt) => {
-      try { const s = JSON.parse(txt); if (!s.bills) throw new Error(); S = { ...structuredClone(DEFAULT_STATE), ...s }; save(); closeSheet(); render(); toast('Backup restored'); }
+      try {
+        const s = JSON.parse(txt); if (!s.bills) throw new Error();
+        if (s.mbImport === 'bills') {
+          // Bills import: add new bills and update ones with the same name, keep everything else.
+          let added = 0, updated = 0;
+          for (const nb of s.bills) {
+            const old = S.bills.find((b) => b.name.trim().toLowerCase() === nb.name.trim().toLowerCase());
+            if (old) { Object.assign(old, { ...nb, id: old.id, paid: { ...(old.paid || {}), ...(nb.paid || {}) } }); updated++; }
+            else { S.bills.push({ paid: {}, reminders: [...S.settings.defaultReminders], ...nb, id: uid() }); added++; }
+          }
+          save(); closeSheet(); tab = 'bills'; render(); toast(`Imported ${added} new bill${added === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}`);
+          return;
+        }
+        S = { ...structuredClone(DEFAULT_STATE), ...s }; save(); closeSheet(); render(); toast('Backup restored');
+      }
       catch (x) { toast('That file is not a Money Buddies backup'); }
     });
   });
