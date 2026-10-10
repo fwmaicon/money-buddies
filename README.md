@@ -1,5 +1,7 @@
 # Money Buddies
 
+Live app: https://fwmaicon.github.io/money-buddies/
+
 A personal finance phone app (installable PWA). Plain HTML, CSS and JS, no build step. All data stays on the phone (localStorage), with backup and restore in Settings.
 
 ## Tabs
