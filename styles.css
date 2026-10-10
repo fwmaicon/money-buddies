@@ -7,7 +7,7 @@
   --line: #E1E4EE;
   --orange: #F2662B; --orange-soft: #FFE4D6; --orange-deep: #9A3412;
   --teal: #0E8C7A; --teal-soft: #DDF3EC; --teal-deep: #0B6B5C;
-  --violet: #5B4BDB; --violet-soft: #E3E6FB; --violet-deep: #3F31B0;
+  --violet: #D7373D; --violet-soft: #FDE2E0; --violet-deep: #A7262B; /* debit red */
   --sun: #FFC93C; --sun-soft: #FFF1C7; --sun-deep: #8A5A00;
   --red: #B42318;
   --accent: var(--orange); --accent-deep: #C2410C;
