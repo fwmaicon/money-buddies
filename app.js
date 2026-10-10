@@ -212,7 +212,8 @@
     if (undo) { const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-undo'; b.dataset.act = 'undo'; b.textContent = 'Undo'; t.append(' ', b); }
     clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; toast._undo = null; }, undo ? 6000 : 2600);
   }
-  const delBtn = (kind, id, name) => `<button type="button" class="del" data-act="del" data-kind="${kind}" data-id="${id}" aria-label="Delete ${esc(name)}">${ICON.trash}</button>`;
+  // Sits behind each row; swiping the row left reveals it (and a long swipe deletes straight away).
+  const delBtn = (kind, id, name) => `<button type="button" class="del" data-act="del" data-kind="${kind}" data-id="${id}" aria-label="Delete ${esc(name)}" tabindex="-1">${ICON.trash}<span>Delete</span></button>`;
   // Delete right away and offer Undo, so a wrong entry is one tap to remove.
   function deleteItem(kind, id) {
     const before = JSON.stringify(S);
@@ -614,7 +615,50 @@
   }
 
   // ---------- events ----------
+  // ---------- swipe left to delete ----------
+  const ROWS = '.item-row,.goal-wrap';
+  const OPEN = 96; // px a row stays open to show its Delete button
+  let sw = null, openRow = null, swipedAt = 0;
+  const slide = (row, x, animate) => {
+    const f = row.firstElementChild; f.style.transition = animate ? 'transform .2s ease' : 'none'; f.style.transform = x ? `translateX(${x}px)` : '';
+    row.classList.toggle('swiping', x < 0);
+  };
+  const closeOpen = () => { if (openRow) { slide(openRow, 0, true); openRow = null; } };
+  function swipeDelete(row) {
+    const btn = row.querySelector('.del'); swipedAt = Date.now();
+    slide(row, -row.offsetWidth, true); row.classList.add('leaving');
+    setTimeout(() => { openRow = null; deleteItem(btn.dataset.kind, btn.dataset.id); }, 200);
+  }
+  document.addEventListener('pointerdown', (e) => {
+    const row = e.target.closest(ROWS);
+    if (openRow && openRow !== row) { closeOpen(); swipedAt = Date.now(); }
+    if (!row || e.target.closest('.del') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    sw = { row, x0: e.clientX, y0: e.clientY, base: row === openRow ? -OPEN : 0, dx: 0, on: false, id: e.pointerId };
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!sw || e.pointerId !== sw.id) return;
+    const dx = e.clientX - sw.x0, dy = e.clientY - sw.y0;
+    if (!sw.on) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; }
+      if (Math.abs(dx) < 10) return;
+      sw.on = true;
+    }
+    sw.dx = Math.min(0, sw.base + dx);
+    slide(sw.row, sw.dx, false);
+  });
+  const endSwipe = (e) => {
+    if (!sw || e.pointerId !== sw.id) return;
+    const { row, dx, on } = sw; sw = null;
+    if (!on) return;
+    swipedAt = Date.now();
+    if (dx < -row.offsetWidth * 0.5) return swipeDelete(row);
+    if (dx < -OPEN / 2) { slide(row, -OPEN, true); openRow = row; } else { slide(row, 0, true); if (openRow === row) openRow = null; }
+  };
+  document.addEventListener('pointerup', endSwipe);
+  document.addEventListener('pointercancel', (e) => { if (sw && e.pointerId === sw.id) { slide(sw.row, sw.base, true); sw = null; } });
+
   document.addEventListener('click', async (e) => {
+    if (Date.now() - swipedAt < 350 && !e.target.closest('.del')) { e.preventDefault(); return; }
     const el = e.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-rem],[data-color],[data-cat]');
     if (!el) return;
     if (el.dataset.tab) { tab = el.dataset.tab; try { localStorage.setItem('mb.tab', tab); } catch (x) { /* ignore */ } render(); window.scrollTo(0, 0); return; }
@@ -648,7 +692,7 @@
       case 'edit-income': return incomeSheet(S.income.find((i) => i.id === id));
       case 'settings': return settingsSheet();
       case 'sample': return loadSample();
-      case 'del': return deleteItem(el.dataset.kind, id);
+      case 'del': { const row = el.closest(ROWS); return row ? swipeDelete(row) : deleteItem(el.dataset.kind, id); }
       case 'undo': { const u = toast._undo; toast._undo = null; $('#toast').hidden = true; if (u) u(); return; }
       case 'close-month': return closeMonthSheet(el.dataset.key);
       case 'print-month': return printReport(el.dataset.key);
