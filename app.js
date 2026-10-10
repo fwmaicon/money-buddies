@@ -19,7 +19,8 @@
     deposits: [],   // {id, goalId, amount, date}
     spends: [],     // {id, name, amount, cat, date}
     income: [],     // extra income: {id, name, amount, date}
-    sent: {}        // notification keys already shown
+    sent: {},       // notification keys already shown
+    closed: {}      // closed months: {'YYYY-MM': {closedAt, report}}
   };
 
   function load() {
@@ -81,6 +82,7 @@
     bell: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
     left: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
     right: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>',
+    trash: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
     gear: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
   };
 
@@ -204,9 +206,24 @@
   let viewMonth = (() => { const t = today(); return new Date(t.getFullYear(), t.getMonth(), 1); })();
   let billFilter = 'all';
 
-  function toast(msg) {
+  function toast(msg, undo) {
     const t = $('#toast'); t.textContent = msg; t.hidden = false;
-    clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 2600);
+    toast._undo = undo || null;
+    if (undo) { const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-undo'; b.dataset.act = 'undo'; b.textContent = 'Undo'; t.append(' ', b); }
+    clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; toast._undo = null; }, undo ? 6000 : 2600);
+  }
+  const delBtn = (kind, id, name) => `<button type="button" class="del" data-act="del" data-kind="${kind}" data-id="${id}" aria-label="Delete ${esc(name)}">${ICON.trash}</button>`;
+  // Delete right away and offer Undo, so a wrong entry is one tap to remove.
+  function deleteItem(kind, id) {
+    const before = JSON.stringify(S);
+    const drop = (k) => { S[k] = S[k].filter((x) => x.id !== id); };
+    if (kind === 'bill') drop('bills');
+    else if (kind === 'goal') { drop('goals'); S.deposits = S.deposits.filter((d) => d.goalId !== id); }
+    else if (kind === 'deposit') drop('deposits');
+    else if (kind === 'spend') drop('spends');
+    else if (kind === 'income') drop('income');
+    save(); render();
+    toast(kind === 'goal' ? 'Goal and its deposits deleted' : 'Deleted', () => { S = JSON.parse(before); save(); render(); toast('Restored'); });
   }
 
   function monthNav() {
@@ -238,7 +255,7 @@
 
     const list = shown.length ? `<div class="list">${shown.map(({ b, due }) => {
       const st = status(b, due);
-      return `<button type="button" class="item" data-act="edit-bill" data-id="${b.id}"><div class="badge" style="background:${tint(b.name)}">${esc(b.name[0]?.toUpperCase() || '?')}</div><div class="main"><b>${esc(b.name)}</b><span>${b.kind === 'debt' ? 'Debt · ' : ''}${b.type === 'once' ? `One-time · ${short(due)}` : `Every month · ${ord(b.day)}`}</span></div><div class="side"><b>${money(b.amount)}</b><span class="pill ${st.cls}">${st.text}</span></div></button>`;
+      return `<div class="item-row"><button type="button" class="item" data-act="edit-bill" data-id="${b.id}"><div class="badge" style="background:${tint(b.name)}">${esc(b.name[0]?.toUpperCase() || '?')}</div><div class="main"><b>${esc(b.name)}</b><span>${b.kind === 'debt' ? 'Debt · ' : ''}${b.type === 'once' ? `One-time · ${short(due)}` : `Every month · ${ord(b.day)}`}</span></div><div class="side"><b>${money(b.amount)}</b><span class="pill ${st.cls}">${st.text}</span></div></button>${delBtn('bill', b.id, b.name)}</div>`;
     }).join('')}</div>` : `<div class="empty">${M.billy(56)}<b>No bills here yet</b>Add rent, phone, or anything you pay. Billy will remind you before it is due.<button type="button" class="btn accent" data-act="add">Add a bill</button>${S.bills.length ? '' : '<button type="button" class="link-btn" data-act="sample">or try it with sample data</button>'}</div>`;
 
     return `
@@ -262,7 +279,7 @@
       const pct = g.target ? Math.min(100, Math.round((saved / g.target) * 100)) : 0;
       const left = Math.max(0, g.target - saved);
       const hint = !g.target ? 'No limit' : left === 0 ? 'Goal reached!' : `${money(left, { round: true })} to go`;
-      return `<button type="button" class="goal" data-act="edit-goal" data-id="${g.id}"><div class="jar"><div class="fill" style="height:${Math.max(pct, 4)}%;background:${g.color}"></div><div class="pct">${pct}%</div></div><b>${esc(g.name)}</b><span>${money(saved, { round: true })}${g.target ? ` of ${money(g.target, { round: true })}` : ''}</span><em>${hint}</em></button>`;
+      return `<div class="goal-wrap"><button type="button" class="goal" data-act="edit-goal" data-id="${g.id}"><div class="jar"><div class="fill" style="height:${Math.max(pct, 4)}%;background:${g.color}"></div><div class="pct">${pct}%</div></div><b>${esc(g.name)}</b><span>${money(saved, { round: true })}${g.target ? ` of ${money(g.target, { round: true })}` : ''}</span><em>${hint}</em></button>${delBtn('goal', g.id, g.name)}</div>`;
     }).join('');
     const recent = [...S.deposits].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
     const gname = (id) => S.goals.find((g) => g.id === id)?.name || 'Savings';
@@ -275,7 +292,7 @@
         <div class="hero-actions"><button type="button" data-act="add" style="background:#fff;color:#0B6B5C">Add money</button><button type="button" data-act="add-goal" style="background:#0B6B5C;color:#fff">New goal</button></div>
       </section>
       ${S.goals.length ? `<h2 style="font-size:20px;font-weight:700">Goals</h2><div class="goals">${goals}</div>` : `<div class="empty">${M.sprout(56)}<b>Plant your first goal</b>An emergency fund, a trip, a new phone. Watch the jar fill up.<button type="button" class="btn accent" data-act="add-goal">New goal</button></div>`}
-      ${recent.length ? `<h2 style="font-size:20px;font-weight:700">Recent</h2><div class="list">${recent.map((d) => `<button type="button" class="item" data-act="edit-deposit" data-id="${d.id}"><div class="main"><b>${esc(gname(d.goalId))}</b><span>${nice(parse(d.date))}</span></div><b style="color:${d.amount < 0 ? 'var(--red)' : 'var(--teal-deep)'}">${d.amount < 0 ? '' : '+'}${money(d.amount)}</b></button>`).join('')}</div>` : ''}`;
+      ${recent.length ? `<h2 style="font-size:20px;font-weight:700">Recent</h2><div class="list">${recent.map((d) => `<div class="item-row"><button type="button" class="item" data-act="edit-deposit" data-id="${d.id}"><div class="main"><b>${esc(gname(d.goalId))}</b><span>${nice(parse(d.date))}</span></div><b style="color:${d.amount < 0 ? 'var(--red)' : 'var(--teal-deep)'}">${d.amount < 0 ? '' : '+'}${money(d.amount)}</b></button>${delBtn('deposit', d.id, 'deposit')}</div>`).join('')}</div>` : ''}`;
   }
 
   const CATS = [
@@ -312,7 +329,7 @@
       </section>
       ${byCat.length ? `<div class="cats">${byCat.map((c) => `<div class="cat"><div class="badge" style="background:${c.tint}">${c.name[0]}</div>${c.name}<b>${money(c.amount, { round: true })}</b></div>`).join('')}</div>` : ''}
       <div class="section-head"><h2>This week</h2><span style="font-size:13px;color:var(--muted)">${short(start)} to ${short(end)}</span></div>
-      ${Object.keys(days).length ? Object.entries(days).map(([d, items]) => `<div class="day-head"><span>${ymd(today()) === d ? 'Today · ' : ''}${nice(parse(d))}</span><span>${money(sum(items))}</span></div><div class="list">${items.map((s) => `<button type="button" class="item" data-act="edit-spend" data-id="${s.id}"><span class="dot" style="background:${cat(s.cat).color}"></span><div class="main"><b>${esc(s.name)}</b><span>${cat(s.cat).name}</span></div><b>${money(s.amount)}</b></button>`).join('')}</div>`).join('') : `<div class="empty">${M.swipe(56)}<b>No purchases logged this week</b>Tap + each time you use your card. Swipe keeps the week honest.</div>`}`;
+      ${Object.keys(days).length ? Object.entries(days).map(([d, items]) => `<div class="day-head"><span>${ymd(today()) === d ? 'Today · ' : ''}${nice(parse(d))}</span><span>${money(sum(items))}</span></div><div class="list">${items.map((s) => `<div class="item-row"><button type="button" class="item" data-act="edit-spend" data-id="${s.id}"><span class="dot" style="background:${cat(s.cat).color}"></span><div class="main"><b>${esc(s.name)}</b><span>${cat(s.cat).name}</span></div><b>${money(s.amount)}</b></button>${delBtn('spend', s.id, s.name)}</div>`).join('')}</div>`).join('') : `<div class="empty">${M.swipe(56)}<b>No purchases logged this week</b>Tap + each time you use your card. Swipe keeps the week honest.</div>`}`;
   }
 
   function viewSummary() {
@@ -352,9 +369,87 @@
         <div class="legend"><div><i style="background:var(--orange)"></i>Bills<b>${money(billsTotal, { round: true })}</b></div><div><i style="background:var(--teal)"></i>Saved<b>${money(saved, { round: true })}</b></div><div><i style="background:var(--violet)"></i>Spent<b>${money(spent, { round: true })}</b></div><div><i style="background:var(--sun)"></i>${free < 0 ? 'Short' : 'Free'}<b>${money(free, { round: true })}</b></div></div>
         <button type="button" class="link-btn" data-act="add-income" style="align-self:flex-start;color:var(--sun-deep)">+ Add extra income</button>
       </section>
+      ${monthCloseCard(y, m)}
       <h2 style="font-size:20px;font-weight:700">Week by week</h2>
       ${weeks}
-      ${extra.length ? `<h2 style="font-size:20px;font-weight:700">Extra income</h2><div class="list">${extra.map((e) => `<button type="button" class="item" data-act="edit-income" data-id="${e.id}"><div class="main"><b>${esc(e.name)}</b><span>${nice(parse(e.date))}</span></div><b style="color:var(--teal-deep)">+${money(e.amount)}</b></button>`).join('')}</div>` : ''}`;
+      ${extra.length ? `<h2 style="font-size:20px;font-weight:700">Extra income</h2><div class="list">${extra.map((e) => `<div class="item-row"><button type="button" class="item" data-act="edit-income" data-id="${e.id}"><div class="main"><b>${esc(e.name)}</b><span>${nice(parse(e.date))}</span></div><b style="color:var(--teal-deep)">+${money(e.amount)}</b></button>${delBtn('income', e.id, e.name)}</div>`).join('')}</div>` : ''}`;
+  }
+
+  // ---------- month close & PDF report ----------
+  function buildReport(y, m) {
+    const first = new Date(y, m, 1), last = new Date(y, m, daysIn(y, m));
+    const pays = paydaysBetween(first, last);
+    const extra = S.income.filter((i) => inRange(i.date, first, last));
+    const bills = billsForMonth(y, m).map(({ b, due }) => ({ name: b.name, kind: b.kind || 'bill', type: b.type, due: ymd(due), amount: b.amount, paid: isPaid(b, due) }));
+    const deposits = S.deposits.filter((d) => inRange(d.date, first, last)).map((d) => ({ date: d.date, goal: S.goals.find((g) => g.id === d.goalId)?.name || 'Savings', amount: d.amount }));
+    const spends = S.spends.filter((x) => inRange(x.date, first, last)).sort((a, b) => a.date.localeCompare(b.date)).map((x) => ({ date: x.date, name: x.name, cat: cat(x.cat).name, amount: x.amount }));
+    const payTotal = pays.length * S.settings.payAmount;
+    const income = payTotal + sum(extra);
+    const billsTotal = sum(bills), paidTotal = sum(bills.filter((b) => b.paid));
+    const saved = sum(deposits), spent = sum(spends);
+    return { y, m, currency: S.settings.currency, paydays: pays.map(ymd), payAmount: S.settings.payAmount, extra: extra.map((e) => ({ date: e.date, name: e.name, amount: e.amount })),
+      bills, deposits, spends, totals: { income, payTotal, billsTotal, paidTotal, unpaidTotal: billsTotal - paidTotal, saved, spent, left: income - billsTotal - saved - spent } };
+  }
+  function reportHTML(r, closedAt) {
+    const cur = S.settings.currency; S.settings.currency = r.currency || cur;
+    const T = r.totals; const row = (cells) => `<tr>${cells.map((c, i) => `<td${i === cells.length - 1 ? ' class="num"' : ''}>${c}</td>`).join('')}</tr>`;
+    const d = (s) => nice(parse(s));
+    const html = `
+      <header class="rp-head"><div><div class="rp-brand">Money Buddies</div><h1>${MONTHS[r.m]} ${r.y}</h1></div><div class="rp-meta">${closedAt ? `Closed ${nice(new Date(closedAt))}` : 'Not closed yet'}</div></header>
+      <section class="rp-cards">
+        <div><span>Income</span><b>${money(T.income)}</b></div><div><span>Bills</span><b>${money(T.billsTotal)}</b></div>
+        <div><span>Saved</span><b>${money(T.saved)}</b></div><div><span>Spent (debit)</span><b>${money(T.spent)}</b></div>
+        <div class="${T.left < 0 ? 'neg' : 'pos'}"><span>${T.left < 0 ? 'Short' : 'Left over'}</span><b>${money(T.left)}</b></div>
+      </section>
+      <h2>Bills <small>${r.bills.filter((b) => b.paid).length} of ${r.bills.length} paid · ${money(T.paidTotal)} paid · ${money(T.unpaidTotal)} not paid</small></h2>
+      <table><thead><tr><th>Bill</th><th>Type</th><th>Due</th><th>Status</th><th class="num">Amount</th></tr></thead><tbody>
+      ${r.bills.map((b) => row([esc(b.name), b.kind === 'debt' ? 'Debt' : (b.type === 'once' ? 'One-time' : 'Monthly'), d(b.due), b.paid ? '<span class="ok">Paid</span>' : '<span class="no">Not paid</span>', money(b.amount)])).join('') || '<tr><td colspan="5">No bills</td></tr>'}
+      </tbody><tfoot>${row(['Total', '', '', '', money(T.billsTotal)])}</tfoot></table>
+      <h2>Income</h2>
+      <table><tbody>
+      ${r.paydays.map((p) => row(['Paycheck', d(p), money(r.payAmount)])).join('')}
+      ${r.extra.map((e) => row([esc(e.name), d(e.date), money(e.amount)])).join('')}
+      ${!r.paydays.length && !r.extra.length ? '<tr><td colspan="3">No income recorded</td></tr>' : ''}
+      </tbody><tfoot>${row(['Total', '', money(T.income)])}</tfoot></table>
+      <h2>Savings</h2>
+      <table><tbody>${r.deposits.map((x) => row([esc(x.goal), d(x.date), money(x.amount)])).join('') || '<tr><td colspan="3">Nothing saved this month</td></tr>'}</tbody><tfoot>${row(['Total', '', money(T.saved)])}</tfoot></table>
+      <h2>Debit spending</h2>
+      <table><tbody>${r.spends.map((x) => row([esc(x.name), x.cat, d(x.date), money(x.amount)])).join('') || '<tr><td colspan="4">No purchases logged</td></tr>'}</tbody><tfoot>${row(['Total', '', '', money(T.spent)])}</tfoot></table>`;
+    S.settings.currency = cur;
+    return html;
+  }
+  function printReport(key) {
+    const c = S.closed[key]; const [yy, mm] = key.split('-').map(Number);
+    const r = c ? c.report : buildReport(yy, mm - 1);
+    const el = $('#report'); el.innerHTML = reportHTML(r, c && c.closedAt);
+    const old = document.title; document.title = `Money Buddies ${MONTHS[r.m]} ${r.y}`;
+    setTimeout(() => { window.print(); document.title = old; }, 50);
+  }
+  function monthCloseCard(y, m) {
+    const key = `${y}-${pad(m + 1)}`; const c = S.closed[key];
+    const past = Object.keys(S.closed).sort().reverse();
+    const history = past.length ? `<div class="closed-list">${past.map((k) => { const [a, b] = k.split('-').map(Number); return `<button type="button" class="chip" data-act="print-month" data-key="${k}">${MONTHS[b - 1].slice(0, 3)} ${a} PDF</button>`; }).join('')}</div>` : '';
+    if (c) return `<section class="close-card done"><div><b>${MONTHS[m]} is closed</b><span>Closed ${nice(new Date(c.closedAt))}. Its report is saved.</span></div><div class="close-actions"><button type="button" class="btn" data-act="print-month" data-key="${key}">Save PDF</button><button type="button" class="btn ghost" data-act="reopen-month" data-key="${key}">Reopen</button></div>${history}</section>`;
+    return `<section class="close-card"><div><b>Finished with ${MONTHS[m]}?</b><span>Close the month to save a PDF of every bill, payment and purchase, then start ${MONTHS[(m + 1) % 12]}.</span></div><div class="close-actions"><button type="button" class="btn" data-act="close-month" data-key="${key}">Close month</button><button type="button" class="btn ghost" data-act="print-month" data-key="${key}">Preview PDF</button></div>${history}</section>`;
+  }
+  function closeMonthSheet(key) {
+    const [yy, mm] = key.split('-').map(Number); const y = yy, m = mm - 1;
+    const r = buildReport(y, m); const T = r.totals;
+    const unpaidOnce = billsForMonth(y, m).filter(({ b, due }) => b.type === 'once' && !isPaid(b, due));
+    const unpaid = r.bills.filter((b) => !b.paid);
+    const nm = new Date(y, m + 1, 1);
+    openSheet(`Close ${MONTHS[m]}`, `
+      <div class="legend" style="font-size:15px"><div>Income<b>${money(T.income, { round: true })}</b></div><div>Bills<b>${money(T.billsTotal, { round: true })}</b></div><div>Saved<b>${money(T.saved, { round: true })}</b></div><div>Spent<b>${money(T.spent, { round: true })}</b></div></div>
+      ${unpaid.length ? `<div class="alert"><div><b>${unpaid.length} bill${unpaid.length === 1 ? ' is' : 's are'} not marked paid</b><span>${unpaid.map((b) => esc(b.name)).join(', ')}. They'll show as "Not paid" in the PDF.</span></div></div>` : '<div class="alert teal"><div><b>Every bill is paid</b><span>Nice month!</span></div></div>'}
+      ${unpaidOnce.length ? `<label class="settings-row" style="cursor:pointer"><div>Move unpaid one-time bills to ${MONTHS[nm.getMonth()]}<span>${unpaidOnce.map((x) => esc(x.b.name)).join(', ')}</span></div><input type="checkbox" name="carry" checked style="width:24px;height:24px"></label>` : ''}
+      <p style="margin:0;font-size:14px;color:var(--muted)">Monthly bills start fresh and unpaid in ${MONTHS[nm.getMonth()]} automatically. After closing, your phone's print screen opens: choose <b>Save as PDF</b> (on iPhone, tap Share, then Save to Files).</p>`,
+    () => {
+      const carry = $('#sheet').elements.carry?.checked;
+      S.closed[key] = { closedAt: new Date().toISOString(), report: r };
+      if (carry) for (const { b } of unpaidOnce) { const d = parse(b.date); b.date = ymd(new Date(nm.getFullYear(), nm.getMonth(), Math.min(d.getDate(), daysIn(nm.getFullYear(), nm.getMonth())))); }
+      save(); closeSheet(); viewMonth = nm; render(); toast(`${MONTHS[m]} closed. ${MONTHS[nm.getMonth()]} is ready.`);
+      printReport(key);
+    }, { saveText: 'Close and save PDF' });
   }
 
   function render() {
@@ -514,7 +609,7 @@
       goals: [{ id: g1, name: 'Emergency fund', target: 5000, color: '#7BD389' }, { id: g2, name: 'Vacation', target: 2000, color: '#FFC93C' }, { id: g3, name: 'New laptop', target: 1200, color: '#A9B4FF' }],
       deposits: [{ id: uid(), goalId: g1, amount: 3050, date: ymd(addDays(t, -40)) }, { id: uid(), goalId: g1, amount: 75, date: ymd(addDays(fri, -7)) }, { id: uid(), goalId: g1, amount: 75, date: ymd(fri) }, { id: uid(), goalId: g2, amount: 850, date: ymd(addDays(t, -5)) }, { id: uid(), goalId: g3, amount: 400, date: ymd(addDays(t, -20)) }],
       spends: [{ id: uid(), name: 'Supermarket', amount: 38, cat: 'groceries', date: ymd(t) }, { id: uid(), name: 'Coffee + bagel', amount: 15, cat: 'food', date: ymd(t) }, { id: uid(), name: 'Gas station', amount: 38, cat: 'gas', date: ymd(addDays(t, -1)) }, { id: uid(), name: 'Lunch', amount: 26, cat: 'food', date: ymd(addDays(t, -2)) }],
-      income: [], sent: {} };
+      income: [], sent: {}, closed: {} };
     save(); render(); toast('Sample data loaded. Erase it any time in Settings.');
   }
 
@@ -553,6 +648,11 @@
       case 'edit-income': return incomeSheet(S.income.find((i) => i.id === id));
       case 'settings': return settingsSheet();
       case 'sample': return loadSample();
+      case 'del': return deleteItem(el.dataset.kind, id);
+      case 'undo': { const u = toast._undo; toast._undo = null; $('#toast').hidden = true; if (u) u(); return; }
+      case 'close-month': return closeMonthSheet(el.dataset.key);
+      case 'print-month': return printReport(el.dataset.key);
+      case 'reopen-month': if (confirm('Reopen this month? Its saved report will be removed, and you can close it again later.')) { delete S.closed[el.dataset.key]; save(); render(); toast('Month reopened'); } return;
       case 'toggle-paid': {
         const f = $('#sheet'); const b = f._bill; const k = ym(f._due);
         b.paid ||= {}; if (b.paid[k]) delete b.paid[k]; else b.paid[k] = true;

@@ -1,5 +1,5 @@
 /* Money Buddies service worker: offline cache + background due-date reminders where supported. */
-const CACHE = 'mb-v3';
+const CACHE = 'mb-v4';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'mascots.js', 'mascots.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'];
 
 self.addEventListener('install', (e) => {

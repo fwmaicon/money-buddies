@@ -163,3 +163,54 @@ body[data-tab="summary"] .fab { display: none; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(100px + var(--safe-b)); background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 14px; font-size: 14px; font-weight: 500; z-index: 30; max-width: calc(100% - 32px); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Delete buttons beside every row */
+.item-row { display: flex; align-items: center; gap: 4px; }
+.item-row > .item { flex: 1; min-width: 0; }
+.del { flex: none; width: 40px; height: 40px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); display: grid; place-items: center; }
+.del:active { background: #FDE2E0; color: var(--red); }
+.goal-wrap { position: relative; }
+.goal-wrap > .del { position: absolute; top: 8px; right: 8px; }
+.toast { display: flex; align-items: center; gap: 14px; }
+.toast[hidden] { display: none; }
+.toast-undo { border: 0; background: transparent; color: var(--sun, #FFC93C); font-weight: 700; font-size: 14px; padding: 4px 2px; }
+
+/* Close month */
+.close-card { background: var(--card); border-radius: 20px; padding: 16px; margin: 16px 0; display: grid; gap: 12px; }
+.close-card b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; }
+.close-card span { color: var(--muted); font-size: 14px; }
+.close-card.done { background: #E3F4EF; }
+.close-actions { display: flex; gap: 8px; }
+.close-actions .btn { flex: 1; }
+.closed-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.closed-list .chip { background: var(--bg); }
+
+/* Printable month report (only visible when printing) */
+.report { display: none; }
+@media print {
+  @page { margin: 14mm; }
+  body { background: #fff !important; }
+  body > *:not(#report) { display: none !important; }
+  .report { display: block; color: #000; font: 11pt/1.4 'DM Sans', sans-serif; }
+  .rp-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+  .rp-brand { font-size: 10pt; text-transform: uppercase; letter-spacing: .08em; color: #555; }
+  .rp-head h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 24pt; margin: 0; }
+  .rp-meta { font-size: 10pt; color: #555; }
+  .rp-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+  .rp-cards div { border: 1px solid #ccc; border-radius: 8px; padding: 8px; }
+  .rp-cards span { display: block; font-size: 9pt; color: #555; }
+  .rp-cards b { font-size: 13pt; }
+  .rp-cards .neg b { color: #B42318; } .rp-cards .pos b { color: #0E7A5A; }
+  .report h2 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 14pt; margin: 18px 0 6px; }
+  .report h2 small { font: 9pt 'DM Sans', sans-serif; color: #555; margin-left: 6px; }
+  .report table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
+  .report tr { page-break-inside: avoid; }
+  .report th, .report td { text-align: left; padding: 5px 6px; border-bottom: 1px solid #ddd; }
+  .report th { font-size: 9pt; text-transform: uppercase; color: #555; }
+  .report tfoot td { font-weight: 700; border-top: 2px solid #000; border-bottom: 0; }
+  .report .num { text-align: right; white-space: nowrap; }
+  .report .ok { color: #0E7A5A; font-weight: 700; } .report .no { color: #B42318; font-weight: 700; }
+}
+.list .item-row { border-bottom: 1px solid var(--bg); }
+.list .item-row:last-child { border-bottom: 0; }
+.item-row > .item { border-bottom: 0; }
